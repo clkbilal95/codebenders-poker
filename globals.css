@@ -1,0 +1,135 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: #0D0F1A;
+  color: #E8EAFF;
+  font-family: 'Inter', sans-serif;
+  min-height: 100vh;
+}
+
+/* Poker Card 3D flip */
+.perspective {
+  perspective: 1000px;
+}
+
+.card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.card-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 12px;
+}
+
+.card-back {
+  transform: rotateY(180deg);
+}
+
+/* Starfield background */
+.stars {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: white;
+  animation: twinkle linear infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; }
+  50% { opacity: 1; }
+}
+
+/* Flying gift emoji animation */
+@keyframes flyToTarget {
+  0% {
+    transform: translate(0, 0) scale(1.5);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: var(--fly-target);
+    opacity: 0;
+    scale: 0.3;
+  }
+}
+
+.flying-gift {
+  position: fixed;
+  font-size: 2.5rem;
+  pointer-events: none;
+  z-index: 9999;
+  animation: flyToTarget 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Glow effects */
+.glow-accent {
+  box-shadow: 0 0 30px rgba(108, 99, 255, 0.3);
+}
+
+.glow-gold {
+  box-shadow: 0 0 20px rgba(245, 200, 66, 0.4);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #151929;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A3050;
+  border-radius: 3px;
+}
+
+/* Toast notification */
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes slideOut {
+  from { transform: translateX(0); opacity: 1; }
+  to { transform: translateX(100%); opacity: 0; }
+}
+
+.toast-enter { animation: slideIn 0.3s ease forwards; }
+.toast-exit { animation: slideOut 0.3s ease forwards; }
+
+/* Confetti */
+@keyframes confettiFall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}

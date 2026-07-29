@@ -23,7 +23,6 @@ const AVATARS = [
 function addHoca(name) {
   const trimmed = name.trim()
   if (!trimmed) return trimmed
-  // Don't add if already ends with Hoca/hoca
   if (trimmed.toLowerCase().endsWith('hoca')) return trimmed
   return trimmed + ' Hoca'
 }
@@ -56,6 +55,7 @@ export default function RoomPage() {
   const [flyingGifts, setFlyingGifts] = useState([])
   const [toasts, setToasts] = useState([])
   const playerRefs = useRef({})
+  const resultsRef = useRef(null)
 
   const addToast = useCallback((msg, emoji = '🎁', type = 'gift') => {
     const id = uuidv4()
@@ -67,12 +67,12 @@ export default function RoomPage() {
     bg: '#0D0F1A', surface: '#151929', card: '#1E2438',
     border: '#2A3050', text: '#E8EAFF', muted: '#7B82A8',
     accent: '#6C63FF', accentLight: '#8B85FF',
-    headerBg: 'rgba(13,15,26,0.85)',
+    headerBg: 'rgba(13,15,26,0.9)',
   } : {
     bg: '#F0F2FF', surface: '#FFFFFF', card: '#F0F2FF',
     border: '#DDE1FF', text: '#1A1D35', muted: '#6B7280',
     accent: '#6C63FF', accentLight: '#8B85FF',
-    headerBg: 'rgba(240,242,255,0.9)',
+    headerBg: 'rgba(240,242,255,0.95)',
   }
 
   async function joinRoom() {
@@ -81,15 +81,9 @@ export default function RoomPage() {
     const { data: roomData } = await supabase.from('rooms').select('owner_id').eq('id', roomId).single()
     const amOwner = roomData?.owner_id === playerId
     setIsOwner(amOwner)
-
     await supabase.from('players').upsert({
-      id: playerId,
-      room_id: roomId,
-      name: nameWithHoca,
-      avatar: selectedAvatar,
-      vote: null,
-      online: true,
-      is_owner: amOwner,
+      id: playerId, room_id: roomId, name: nameWithHoca,
+      avatar: selectedAvatar, vote: null, online: true, is_owner: amOwner,
     })
     setPhase('game')
   }
@@ -103,7 +97,6 @@ export default function RoomPage() {
 
   useEffect(() => {
     if (!roomId || phase !== 'game') return
-
     async function fetchAll() {
       const { data: roomData } = await supabase.from('rooms').select('*').eq('id', roomId).single()
       if (roomData) { setRoom(roomData); setStory(roomData.current_story || ''); setIsOwner(roomData.owner_id === playerId) }
@@ -117,6 +110,10 @@ export default function RoomPage() {
         if (payload.new) {
           setRoom(payload.new); setStory(payload.new.current_story || '')
           if (payload.new.votes_visible === false && payload.old?.votes_visible === true) setMyVote(null)
+          // Scroll to results when votes revealed
+          if (payload.new.votes_visible === true && payload.old?.votes_visible === false) {
+            setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+          }
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` }, payload => {
@@ -154,12 +151,19 @@ export default function RoomPage() {
   }, [roomId, phase, playerId, addToast])
 
   async function vote(value) { setMyVote(value); await supabase.from('players').update({ vote: value }).eq('id', playerId) }
-  async function revealVotes() { await supabase.from('rooms').update({ votes_visible: true }).eq('id', roomId); addToast('Kartlar açıldı!', '🎴', 'reveal') }
+
+  async function revealVotes() {
+    await supabase.from('rooms').update({ votes_visible: true }).eq('id', roomId)
+    addToast('Kartlar açıldı!', '🎴', 'reveal')
+    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+  }
+
   async function resetVotes() {
     await supabase.from('rooms').update({ votes_visible: false }).eq('id', roomId)
     await supabase.from('players').update({ vote: null }).eq('room_id', roomId)
     setMyVote(null)
   }
+
   async function updateStory(val) { setStory(val); await supabase.from('rooms').update({ current_story: val }).eq('id', roomId) }
 
   function handleSendGift(gift, toPlayer, fromPos) {
@@ -229,9 +233,8 @@ export default function RoomPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-sm font-medium mb-1" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
-                <p className="text-xs mb-2" style={{ color: theme.muted }}>İsmin otomatik olarak "Hoca" eki alacak 😄</p>
-                <input type="text" placeholder="Adını gir... (örn: Bilal)" value={playerName}
+                <p className="text-sm font-medium mb-2" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
+                <input type="text" placeholder="Adını gir..." value={playerName}
                   onChange={e => setPlayerName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && joinRoom()}
                   className="w-full px-4 py-3 rounded-xl mb-4 outline-none border focus:border-indigo-500 transition-colors text-sm"
@@ -245,9 +248,7 @@ export default function RoomPage() {
                       {selectedAvatar}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>
-                        {addHoca(playerName)}
-                      </p>
+                      <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{playerName.trim()}</p>
                       <p className="text-xs" style={{ color: theme.muted }}>Codebenders üyesi</p>
                     </div>
                   </div>
@@ -328,7 +329,7 @@ export default function RoomPage() {
               style={{ background: theme.bg, borderColor: theme.border, color: theme.text, fontFamily: 'Inter' }} />
           </div>
 
-          {/* Team Members — responsive grid */}
+          {/* Team Members */}
           <div>
             <p className="text-xs font-semibold mb-4"
               style={{ color: theme.muted, fontFamily: 'Space Grotesk', letterSpacing: '0.08em' }}>
@@ -338,11 +339,10 @@ export default function RoomPage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
               gap: '24px 16px',
-              paddingTop: '20px', // room for crown
+              paddingTop: '20px',
             }}>
               {players.map(player => (
-                <div key={player.id} ref={el => { playerRefs.current[player.id] = el }}
-                  className="flex justify-center">
+                <div key={player.id} ref={el => { playerRefs.current[player.id] = el }} className="flex justify-center">
                   <PlayerCard
                     player={player}
                     currentPlayerId={playerId}
@@ -355,10 +355,9 @@ export default function RoomPage() {
             </div>
           </div>
 
-          {/* Divider */}
           <div style={{ height: 1, background: theme.border }} />
 
-          {/* Controls */}
+          {/* Controls — owner can reveal ANY time */}
           <div className="flex items-center gap-3 flex-wrap">
             {!votesVisible && (
               <>
@@ -371,10 +370,17 @@ export default function RoomPage() {
                   }}>
                   {allVoted ? '✅ Herkes Puanladı!' : `⏳ ${players.filter(p => p.vote).length}/${players.length} puan`}
                 </div>
-                {isOwner && allVoted && (
+                {isOwner && (
                   <button onClick={revealVotes}
                     className="px-5 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:scale-105"
-                    style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', fontFamily: 'Space Grotesk', cursor: 'pointer', boxShadow: '0 0 20px rgba(108,99,255,0.4)' }}>
+                    style={{
+                      background: allVoted
+                        ? 'linear-gradient(135deg, #6C63FF, #8B85FF)'
+                        : 'linear-gradient(135deg, #3a3060, #4a3f80)',
+                      fontFamily: 'Space Grotesk', cursor: 'pointer',
+                      boxShadow: allVoted ? '0 0 20px rgba(108,99,255,0.4)' : 'none',
+                      opacity: allVoted ? 1 : 0.75,
+                    }}>
                     🎴 Kartları Aç!
                   </button>
                 )}
@@ -395,7 +401,12 @@ export default function RoomPage() {
             )}
           </div>
 
-          {votesVisible && <VoteResults players={players} theme={theme} />}
+          {/* Results — scrolled into view automatically */}
+          {votesVisible && (
+            <div ref={resultsRef}>
+              <VoteResults players={players} theme={theme} />
+            </div>
+          )}
 
           {/* Card deck */}
           {!votesVisible && (

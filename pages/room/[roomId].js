@@ -20,6 +20,14 @@ const AVATARS = [
   '🎭', '🃏', '🎯', '🚀', '⚡', '🌙'
 ]
 
+function addHoca(name) {
+  const trimmed = name.trim()
+  if (!trimmed) return trimmed
+  // Don't add if already ends with Hoca/hoca
+  if (trimmed.toLowerCase().endsWith('hoca')) return trimmed
+  return trimmed + ' Hoca'
+}
+
 export default function RoomPage() {
   const router = useRouter()
   const { roomId } = router.query
@@ -45,7 +53,6 @@ export default function RoomPage() {
   const [isOwner, setIsOwner] = useState(false)
   const [darkMode, setDarkMode] = useState(true)
   const [activeEffect, setActiveEffect] = useState(null)
-
   const [flyingGifts, setFlyingGifts] = useState([])
   const [toasts, setToasts] = useState([])
   const playerRefs = useRef({})
@@ -56,35 +63,35 @@ export default function RoomPage() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }, [])
 
-  // Theme colors
   const theme = darkMode ? {
     bg: '#0D0F1A', surface: '#151929', card: '#1E2438',
     border: '#2A3050', text: '#E8EAFF', muted: '#7B82A8',
     accent: '#6C63FF', accentLight: '#8B85FF',
+    headerBg: 'rgba(13,15,26,0.85)',
   } : {
-    bg: '#F0F2FF', surface: '#FFFFFF', card: '#F8F9FF',
+    bg: '#F0F2FF', surface: '#FFFFFF', card: '#F0F2FF',
     border: '#DDE1FF', text: '#1A1D35', muted: '#6B7280',
     accent: '#6C63FF', accentLight: '#8B85FF',
+    headerBg: 'rgba(240,242,255,0.9)',
   }
 
   async function joinRoom() {
     if (!playerName.trim() || !roomId) return
-
-    // Check if this player is owner
+    const nameWithHoca = addHoca(playerName)
     const { data: roomData } = await supabase.from('rooms').select('owner_id').eq('id', roomId).single()
     const amOwner = roomData?.owner_id === playerId
     setIsOwner(amOwner)
 
-    const { error } = await supabase.from('players').upsert({
+    await supabase.from('players').upsert({
       id: playerId,
       room_id: roomId,
-      name: playerName.trim(),
+      name: nameWithHoca,
       avatar: selectedAvatar,
       vote: null,
       online: true,
       is_owner: amOwner,
     })
-    if (!error) setPhase('game')
+    setPhase('game')
   }
 
   useEffect(() => {
@@ -99,11 +106,7 @@ export default function RoomPage() {
 
     async function fetchAll() {
       const { data: roomData } = await supabase.from('rooms').select('*').eq('id', roomId).single()
-      if (roomData) {
-        setRoom(roomData)
-        setStory(roomData.current_story || '')
-        setIsOwner(roomData.owner_id === playerId)
-      }
+      if (roomData) { setRoom(roomData); setStory(roomData.current_story || ''); setIsOwner(roomData.owner_id === playerId) }
       const { data: playersData } = await supabase.from('players').select('*').eq('room_id', roomId).eq('online', true)
       if (playersData) setPlayers(playersData)
     }
@@ -112,8 +115,7 @@ export default function RoomPage() {
     const roomSub = supabase.channel(`room-${roomId}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` }, payload => {
         if (payload.new) {
-          setRoom(payload.new)
-          setStory(payload.new.current_story || '')
+          setRoom(payload.new); setStory(payload.new.current_story || '')
           if (payload.new.votes_visible === false && payload.old?.votes_visible === true) setMyVote(null)
         }
       })
@@ -125,9 +127,8 @@ export default function RoomPage() {
             if (existing) return prev.map(p => p.id === payload.new.id ? payload.new : p)
             return [...prev, payload.new]
           })
-          if (payload.eventType === 'INSERT' && payload.new.id !== playerId) {
+          if (payload.eventType === 'INSERT' && payload.new.id !== playerId)
             addToast(`${payload.new.avatar} ${payload.new.name} odaya katıldı!`, '👋', 'info')
-          }
         }
         if (payload.eventType === 'DELETE') setPlayers(prev => prev.filter(p => p.id !== payload.old.id))
       })
@@ -135,45 +136,31 @@ export default function RoomPage() {
 
     const giftSub = supabase.channel(`gifts-${roomId}`)
       .on('broadcast', { event: 'gift' }, ({ payload }) => {
-        if (payload.toId === playerId) {
+        if (payload.toId === playerId)
           addToast(`${payload.fromAvatar} ${payload.fromName} ${payload.giftMsg}`, payload.giftEmoji, 'gift')
-        } else if (payload.fromId !== playerId) {
+        else if (payload.fromId !== playerId)
           addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftEmoji}`, payload.giftEmoji, 'gift')
-        }
       })
       .on('broadcast', { event: 'effect' }, ({ payload }) => {
         if (payload.toId === playerId) {
           setActiveEffect(payload.effectId)
           addToast(`${payload.fromAvatar} ${payload.fromName} sana ${payload.effectLabel} efekti gönderdi!`, payload.effectEmoji, 'gift')
-        } else if (payload.fromId !== playerId) {
+        } else if (payload.fromId !== playerId)
           addToast(`${payload.fromName} → ${payload.toName}: ${payload.effectEmoji} ${payload.effectLabel}`, payload.effectEmoji, 'info')
-        }
       })
       .subscribe()
 
     return () => { supabase.removeChannel(roomSub); supabase.removeChannel(giftSub) }
   }, [roomId, phase, playerId, addToast])
 
-  async function vote(value) {
-    setMyVote(value)
-    await supabase.from('players').update({ vote: value }).eq('id', playerId)
-  }
-
-  async function revealVotes() {
-    await supabase.from('rooms').update({ votes_visible: true }).eq('id', roomId)
-    addToast('Kartlar açıldı!', '🎴', 'reveal')
-  }
-
+  async function vote(value) { setMyVote(value); await supabase.from('players').update({ vote: value }).eq('id', playerId) }
+  async function revealVotes() { await supabase.from('rooms').update({ votes_visible: true }).eq('id', roomId); addToast('Kartlar açıldı!', '🎴', 'reveal') }
   async function resetVotes() {
     await supabase.from('rooms').update({ votes_visible: false }).eq('id', roomId)
     await supabase.from('players').update({ vote: null }).eq('room_id', roomId)
     setMyVote(null)
   }
-
-  async function updateStory(val) {
-    setStory(val)
-    await supabase.from('rooms').update({ current_story: val }).eq('id', roomId)
-  }
+  async function updateStory(val) { setStory(val); await supabase.from('rooms').update({ current_story: val }).eq('id', roomId) }
 
   function handleSendGift(gift, toPlayer, fromPos) {
     const targetEl = playerRefs.current[toPlayer.id]
@@ -181,18 +168,13 @@ export default function RoomPage() {
     const toPos = targetRect
       ? { x: targetRect.left + targetRect.width / 2, y: targetRect.top + targetRect.height / 2 }
       : { x: window.innerWidth / 2, y: 100 }
-
-    const giftId = uuidv4()
-    setFlyingGifts(prev => [...prev, { id: giftId, emoji: gift.emoji, fromPos, toPos }])
-
+    setFlyingGifts(prev => [...prev, { id: uuidv4(), emoji: gift.emoji, fromPos, toPos }])
     supabase.channel(`gifts-${roomId}`).send({
       type: 'broadcast', event: 'gift',
       payload: {
-        fromId: playerId,
-        fromName: playerName,
+        fromId: playerId, fromName: players.find(p => p.id === playerId)?.name || '',
         fromAvatar: players.find(p => p.id === playerId)?.avatar || '🎁',
-        toId: toPlayer.id, toName: toPlayer.name,
-        giftEmoji: gift.emoji, giftMsg: gift.msg,
+        toId: toPlayer.id, toName: toPlayer.name, giftEmoji: gift.emoji, giftMsg: gift.msg,
       }
     })
     addToast(`${gift.emoji} ${toPlayer.name}'e gönderildi!`, gift.emoji, 'gift')
@@ -202,8 +184,7 @@ export default function RoomPage() {
     supabase.channel(`gifts-${roomId}`).send({
       type: 'broadcast', event: 'effect',
       payload: {
-        fromId: playerId,
-        fromName: playerName,
+        fromId: playerId, fromName: players.find(p => p.id === playerId)?.name || '',
         fromAvatar: players.find(p => p.id === playerId)?.avatar || '✨',
         toId: toPlayer.id, toName: toPlayer.name,
         effectId: effect.id, effectLabel: effect.label, effectEmoji: effect.emoji,
@@ -226,18 +207,13 @@ export default function RoomPage() {
             <div className="w-full max-w-md">
               <div className="text-center mb-8">
                 <div className="text-5xl mb-3 animate-float">🃏</div>
-                <h1 className="text-3xl font-bold" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>
-                  Odaya Katıl
-                </h1>
+                <h1 className="text-3xl font-bold" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>Odaya Katıl</h1>
                 <p className="text-sm mt-1" style={{ color: theme.muted }}>
                   Oda: <span style={{ color: theme.accentLight, letterSpacing: 2 }}>{roomId}</span>
                 </p>
               </div>
-
               <div className="rounded-2xl p-6 border" style={{ background: theme.surface, borderColor: theme.border }}>
-                <p className="text-sm font-medium mb-3" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>
-                  Avatarını seç
-                </p>
+                <p className="text-sm font-medium mb-3" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Avatarını seç</p>
                 <div className="grid grid-cols-8 gap-2 mb-5">
                   {AVATARS.map(av => (
                     <button key={av} onClick={() => setSelectedAvatar(av)}
@@ -247,15 +223,15 @@ export default function RoomPage() {
                         border: selectedAvatar === av ? '2px solid #8B85FF' : `2px solid ${theme.border}`,
                         cursor: 'pointer',
                         transform: selectedAvatar === av ? 'scale(1.15)' : 'scale(1)',
-                        boxShadow: selectedAvatar === av ? '0 0 12px rgba(108, 99, 255, 0.5)' : 'none',
+                        boxShadow: selectedAvatar === av ? '0 0 12px rgba(108,99,255,0.5)' : 'none',
                       }}>
                       {av}
                     </button>
                   ))}
                 </div>
-
-                <p className="text-sm font-medium mb-2" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
-                <input type="text" placeholder="Adını gir..." value={playerName}
+                <p className="text-sm font-medium mb-1" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
+                <p className="text-xs mb-2" style={{ color: theme.muted }}>İsmin otomatik olarak "Hoca" eki alacak 😄</p>
+                <input type="text" placeholder="Adını gir... (örn: Bilal)" value={playerName}
                   onChange={e => setPlayerName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && joinRoom()}
                   className="w-full px-4 py-3 rounded-xl mb-4 outline-none border focus:border-indigo-500 transition-colors text-sm"
@@ -269,7 +245,9 @@ export default function RoomPage() {
                       {selectedAvatar}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{playerName}</p>
+                      <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>
+                        {addHoca(playerName)}
+                      </p>
                       <p className="text-xs" style={{ color: theme.muted }}>Codebenders üyesi</p>
                     </div>
                   </div>
@@ -299,90 +277,88 @@ export default function RoomPage() {
       <div style={{ background: theme.bg, minHeight: '100vh' }}>
         <StarField />
         <Toast toasts={toasts} />
-
-        {activeEffect && (
-          <ScreenEffect effect={activeEffect} onDone={() => setActiveEffect(null)} />
-        )}
-
+        {activeEffect && <ScreenEffect effect={activeEffect} onDone={() => setActiveEffect(null)} />}
         {flyingGifts.map(g => (
           <FlyingGift key={g.id} gift={{ emoji: g.emoji }} fromPos={g.fromPos} toPos={g.toPos}
             onDone={() => setFlyingGifts(prev => prev.filter(x => x.id !== g.id))} />
         ))}
 
         {/* Header */}
-        <header className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: theme.border, background: darkMode ? 'rgba(13,15,26,0.85)' : 'rgba(240,242,255,0.85)', backdropFilter: 'blur(10px)' }}>
+        <header className="flex items-center justify-between px-5 py-3 border-b sticky top-0 z-30"
+          style={{ borderColor: theme.border, background: theme.headerBg, backdropFilter: 'blur(12px)' }}>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🃏</span>
+            <span className="text-xl">🃏</span>
             <div>
-              <h1 className="font-bold text-sm" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>
-                Codebenders Poker
-              </h1>
+              <h1 className="font-bold text-sm" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>Codebenders Poker</h1>
               <p className="text-xs" style={{ color: theme.muted }}>
                 Oda: <span style={{ letterSpacing: 2 }}>{roomId}</span>
                 {isOwner && <span style={{ color: '#F5C842', marginLeft: 8 }}>👑 Yönetici</span>}
               </p>
             </div>
           </div>
-
           <div className="flex items-center gap-2">
-            {/* Dark/Light mode toggle */}
             <button onClick={() => setDarkMode(!darkMode)}
-              className="text-xs px-3 py-2 rounded-lg transition-all hover:scale-105"
+              className="px-3 py-1.5 rounded-lg text-sm transition-all hover:scale-105"
               style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.muted, cursor: 'pointer' }}>
               {darkMode ? '☀️' : '🌙'}
             </button>
             <button onClick={() => { navigator.clipboard.writeText(window.location.href); addToast('Link kopyalandı!', '🔗', 'info') }}
-              className="text-xs px-3 py-2 rounded-lg transition-all hover:scale-105"
+              className="text-xs px-3 py-1.5 rounded-lg transition-all hover:scale-105"
               style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.muted, cursor: 'pointer', fontFamily: 'Space Grotesk' }}>
               🔗 Link kopyala
             </button>
-            <div className="text-xs px-3 py-2 rounded-lg"
+            <div className="text-xs px-3 py-1.5 rounded-lg"
               style={{ background: theme.card, border: `1px solid ${theme.border}`, color: theme.muted }}>
               👥 {players.length}
             </div>
           </div>
         </header>
 
-        <main className="px-4 py-6 flex flex-col gap-6" style={{ maxWidth: 720, margin: '0 auto' }}>
+        <main className="px-4 py-5 flex flex-col gap-5" style={{ maxWidth: 900, margin: '0 auto' }}>
 
-          {/* Story input */}
+          {/* Story */}
           <div className="rounded-2xl p-4 border" style={{ background: theme.surface, borderColor: theme.border }}>
             <div className="flex items-center gap-2 mb-2">
               <span>📋</span>
-              <span className="text-sm font-medium" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>
-                Puanlanacak Konu
-              </span>
+              <span className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Puanlanacak Konu</span>
             </div>
-            <input type="text"
-              placeholder="User Story / Bug Başlığını Buraya Girebilirsiniz"
+            <input type="text" placeholder="User Story / Bug Başlığını Buraya Girebilirsiniz"
               value={story} onChange={e => updateStory(e.target.value)}
               className="w-full px-3 py-2 rounded-lg text-sm outline-none border focus:border-indigo-500 transition-colors"
               style={{ background: theme.bg, borderColor: theme.border, color: theme.text, fontFamily: 'Inter' }} />
           </div>
 
-          {/* Players */}
+          {/* Team Members — responsive grid */}
           <div>
-            <p className="text-xs mb-4" style={{ color: theme.muted, fontFamily: 'Space Grotesk' }}>
+            <p className="text-xs font-semibold mb-4"
+              style={{ color: theme.muted, fontFamily: 'Space Grotesk', letterSpacing: '0.08em' }}>
               TEAM MEMBERS ({players.length})
             </p>
-            <div className="flex flex-wrap gap-6">
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+              gap: '24px 16px',
+              paddingTop: '20px', // room for crown
+            }}>
               {players.map(player => (
-                <div key={player.id} ref={el => { playerRefs.current[player.id] = el }}>
+                <div key={player.id} ref={el => { playerRefs.current[player.id] = el }}
+                  className="flex justify-center">
                   <PlayerCard
                     player={player}
                     currentPlayerId={playerId}
                     votesVisible={votesVisible}
                     onSendGift={handleSendGift}
                     onSendEffect={handleSendEffect}
-                    isOwner={isOwner}
                   />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Status / controls */}
+          {/* Divider */}
+          <div style={{ height: 1, background: theme.border }} />
+
+          {/* Controls */}
           <div className="flex items-center gap-3 flex-wrap">
             {!votesVisible && (
               <>
@@ -395,15 +371,10 @@ export default function RoomPage() {
                   }}>
                   {allVoted ? '✅ Herkes Puanladı!' : `⏳ ${players.filter(p => p.vote).length}/${players.length} puan`}
                 </div>
-                {/* Only owner can reveal */}
                 {isOwner && allVoted && (
                   <button onClick={revealVotes}
                     className="px-5 py-2 rounded-xl font-semibold text-white text-sm transition-all hover:scale-105"
-                    style={{
-                      background: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
-                      fontFamily: 'Space Grotesk', cursor: 'pointer',
-                      boxShadow: '0 0 20px rgba(108,99,255,0.4)',
-                    }}>
+                    style={{ background: 'linear-gradient(135deg, #6C63FF, #8B85FF)', fontFamily: 'Space Grotesk', cursor: 'pointer', boxShadow: '0 0 20px rgba(108,99,255,0.4)' }}>
                     🎴 Kartları Aç!
                   </button>
                 )}
@@ -418,10 +389,7 @@ export default function RoomPage() {
             {votesVisible && isOwner && (
               <button onClick={resetVotes}
                 className="px-5 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105"
-                style={{
-                  background: theme.card, border: '1px solid #F5C842',
-                  color: '#F5C842', fontFamily: 'Space Grotesk', cursor: 'pointer',
-                }}>
+                style={{ background: theme.card, border: '1px solid #F5C842', color: '#F5C842', fontFamily: 'Space Grotesk', cursor: 'pointer' }}>
                 🔄 Yeniden Oyla
               </button>
             )}
@@ -432,7 +400,7 @@ export default function RoomPage() {
           {/* Card deck */}
           {!votesVisible && (
             <div>
-              <p className="text-xs mb-3" style={{ color: theme.muted, fontFamily: 'Space Grotesk' }}>
+              <p className="text-xs font-semibold mb-3" style={{ color: theme.muted, fontFamily: 'Space Grotesk', letterSpacing: '0.08em' }}>
                 PUANINIZI SEÇİN
               </p>
               <div className="flex flex-wrap gap-3">

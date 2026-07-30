@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect } from 'react'
 
 const GIFTS = [
-  { img: '/gifts/cay.jpg',       label: 'Çay',                msg: 'sana çay ısmarlıyor!' },
-  { img: '/gifts/oralet.jpg',    label: 'Oralet',             msg: 'sana oralet gönderiyor!' },
-  { img: '/gifts/cocacola.jpg',  label: 'Coca Cola',          msg: 'sana Coca Cola ısmarlıyor!' },
-  { img: '/gifts/ayran.jpg',     label: 'Ayran',              msg: 'sana Özer Hisar ayran gönderiyor!' },
-  { img: '/gifts/latte.jpg',     label: 'Ice Karamel Latte',  msg: 'sana ice karamel latte ısmarlıyor!' },
-  { img: '/gifts/tost.jpg',      label: 'Tost',               msg: 'sana tost ısmarlıyor!' },
-  { img: '/gifts/meyve.jpg',     label: 'Meyve Tabağı',       msg: 'sana meyve tabağı gönderiyor!' },
-  { img: '/gifts/baklava.jpg',   label: 'Baklava',            msg: 'sana baklava gönderiyor!' },
-  { img: '/gifts/hamburger.jpg', label: 'Hamburger',          msg: 'sana hamburger ısmarlıyor!' },
-  { img: '/gifts/simit.jpg',     label: 'Ankara Simidi',      msg: 'sana Ankara simidi gönderiyor!' },
+  { img: '/gifts/cay.jpg',          label: 'Çay',               msg: 'sana çay ısmarlıyor!' },
+  { img: '/gifts/oralet.jpg',       label: 'Oralet',            msg: 'sana oralet gönderiyor!' },
+  { img: '/gifts/cocacola.jpg',     label: 'Coca Cola',         msg: 'sana Coca Cola ısmarlıyor!' },
+  { img: '/gifts/ayran.jpg',        label: 'Ayran',             msg: 'sana Özer Hisar ayran gönderiyor!' },
+  { img: '/gifts/latte.jpg',        label: 'Ice Latte',         msg: 'sana ice karamel latte ısmarlıyor!' },
+  { img: '/gifts/filtrekahve.jpg',  label: 'Filtre Kahve',      msg: 'sana filtre kahve ısmarlıyor!' },
+  { img: '/gifts/tost.jpg',         label: 'Tost',              msg: 'sana tost ısmarlıyor!' },
+  { img: '/gifts/pizza.jpg',        label: 'Pizza',             msg: 'sana pizza ısmarlıyor!' },
+  { img: '/gifts/meyve.jpg',        label: 'Meyve Tabağı',      msg: 'sana meyve tabağı gönderiyor!' },
+  { img: '/gifts/baklava.jpg',      label: 'Baklava',           msg: 'sana baklava gönderiyor!' },
+  { img: '/gifts/hamburger.jpg',    label: 'Hamburger',         msg: 'sana hamburger ısmarlıyor!' },
+  { img: '/gifts/simit.jpg',        label: 'Ankara Simidi',     msg: 'sana Ankara simidi gönderiyor!' },
 ]
 
 const EFFECTS = [
@@ -20,10 +22,10 @@ const EFFECTS = [
 ]
 
 export default function PlayerCard({ player, currentPlayerId, votesVisible, onSendGift, onSendEffect }) {
-  const [showGiftMenu, setShowGiftMenu]     = useState(false)
+  const [showGiftMenu,   setShowGiftMenu]   = useState(false)
   const [showEffectMenu, setShowEffectMenu] = useState(false)
-  const buttonRef    = useRef(null)
-  const giftMenuRef  = useRef(null)
+  const buttonRef     = useRef(null)
+  const giftMenuRef   = useRef(null)
   const effectMenuRef = useRef(null)
 
   const isMe        = player.id === currentPlayerId
@@ -126,29 +128,26 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
               title="Hediye gönder">🎁</button>
 
             {showGiftMenu && (
-              <div className="absolute bottom-full mb-2 left-1/2 rounded-xl p-2 z-40"
-                style={{ transform: 'translateX(-50%)', background: '#1E2438', border: '1px solid #2A3050', boxShadow: '0 8px 32px rgba(0,0,0,0.7)', minWidth: 210 }}>
-                <p className="text-xs mb-2 px-1" style={{ color: '#7B82A8', fontFamily: 'Space Grotesk' }}>
+              <div className="absolute bottom-full mb-2 left-1/2 rounded-xl p-3 z-40"
+                style={{ transform: 'translateX(-50%)', background: '#1E2438', border: '1px solid #2A3050', boxShadow: '0 8px 32px rgba(0,0,0,0.7)', minWidth: 228 }}>
+                <p className="text-xs mb-3 px-1" style={{ color: '#7B82A8', fontFamily: 'Space Grotesk' }}>
                   {player.name}&apos;e gönder:
                 </p>
-                <div className="grid grid-cols-5 gap-1">
+                {/* 4-column grid: image + label together per cell */}
+                <div className="grid grid-cols-4 gap-2">
                   {GIFTS.map(gift => (
                     <button key={gift.label} onClick={() => handleSendGift(gift)}
-                      className="rounded-lg overflow-hidden transition-all hover:scale-110 hover:ring-2 hover:ring-indigo-400"
-                      style={{ width: 36, height: 36, cursor: 'pointer', padding: 0, border: 'none', background: '#0D0F1A' }}
+                      className="flex flex-col items-center gap-1 rounded-xl p-1 transition-all hover:scale-105 hover:bg-indigo-900"
+                      style={{ background: '#0D0F1A', cursor: 'pointer', border: 'none' }}
                       title={gift.label}>
-                      <img src={gift.img} alt={gift.label}
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      <div style={{ width: 40, height: 40, borderRadius: 8, overflow: 'hidden', flexShrink: 0 }}>
+                        <img src={gift.img} alt={gift.label}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </div>
+                      <span style={{ fontSize: '0.52rem', color: '#A0A8CC', fontFamily: 'Space Grotesk', textAlign: 'center', lineHeight: 1.2, width: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {gift.label}
+                      </span>
                     </button>
-                  ))}
-                </div>
-                {/* Labels row */}
-                <div className="grid grid-cols-5 gap-1 mt-1">
-                  {GIFTS.map(gift => (
-                    <p key={gift.label + '-label'}
-                      style={{ fontSize: '0.45rem', color: '#7B82A8', textAlign: 'center', fontFamily: 'Space Grotesk', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {gift.label}
-                    </p>
                   ))}
                 </div>
               </div>
@@ -178,7 +177,6 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
               </div>
             )}
           </div>
-
         </div>
       )}
     </div>

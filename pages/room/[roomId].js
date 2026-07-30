@@ -134,9 +134,9 @@ export default function RoomPage() {
     const giftSub = supabase.channel(`gifts-${roomId}`)
       .on('broadcast', { event: 'gift' }, ({ payload }) => {
         if (payload.toId === playerId)
-          addToast(`${payload.fromAvatar} ${payload.fromName} ${payload.giftMsg}`, payload.giftEmoji, 'gift')
+          addToast(`${payload.fromAvatar} ${payload.fromName} ${payload.giftMsg}`, '🎁', 'gift')
         else if (payload.fromId !== playerId)
-          addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftEmoji}`, payload.giftEmoji, 'gift')
+          addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftLabel}`, '🎁', 'gift')
       })
       .on('broadcast', { event: 'consensus_fireworks' }, () => {
         setActiveEffect('fireworks')
@@ -192,10 +192,11 @@ export default function RoomPage() {
       payload: {
         fromId: playerId, fromName: players.find(p => p.id === playerId)?.name || '',
         fromAvatar: players.find(p => p.id === playerId)?.avatar || '🎁',
-        toId: toPlayer.id, toName: toPlayer.name, giftEmoji: gift.emoji, giftMsg: gift.msg,
+        toId: toPlayer.id, toName: toPlayer.name,
+        giftLabel: gift.label, giftImg: gift.img, giftMsg: gift.msg,
       }
     })
-    addToast(`${gift.emoji} ${toPlayer.name}'e gönderildi!`, gift.emoji, 'gift')
+    addToast(`🎁 ${toPlayer.name}'e ${gift.label} gönderildi!`, '🎁', 'gift')
   }
 
   function handleSendEffect(effect, toPlayer) {

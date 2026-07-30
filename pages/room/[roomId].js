@@ -138,6 +138,9 @@ export default function RoomPage() {
         else if (payload.fromId !== playerId)
           addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftEmoji}`, payload.giftEmoji, 'gift')
       })
+      .on('broadcast', { event: 'consensus_fireworks' }, () => {
+        setActiveEffect('fireworks')
+      })
       .on('broadcast', { event: 'effect' }, ({ payload }) => {
         if (payload.toId === playerId) {
           setActiveEffect(payload.effectId)
@@ -155,7 +158,18 @@ export default function RoomPage() {
   async function revealVotes() {
     await supabase.from('rooms').update({ votes_visible: true }).eq('id', roomId)
     addToast('Kartlar açıldı!', '🎴', 'reveal')
-    setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      // If everyone voted the same, trigger fireworks for everyone via broadcast
+      const votes = players.map(p => p.vote).filter(Boolean)
+      const allSame = votes.length > 0 && new Set(votes).size === 1
+      if (allSame) {
+        supabase.channel(`gifts-${roomId}`).send({
+          type: 'broadcast', event: 'consensus_fireworks', payload: {}
+        })
+        setActiveEffect('fireworks')
+      }
+    }, 400)
   }
 
   async function resetVotes() {
@@ -323,10 +337,20 @@ export default function RoomPage() {
               <span>📋</span>
               <span className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Puanlanacak Konu</span>
             </div>
-            <input type="text" placeholder="User Story / Bug Başlığını Buraya Girebilirsiniz"
-              value={story} onChange={e => updateStory(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg text-sm outline-none border focus:border-indigo-500 transition-colors"
-              style={{ background: theme.bg, borderColor: theme.border, color: theme.text, fontFamily: 'Inter' }} />
+            <input type="text"
+              placeholder={isOwner ? "User Story / Bug Başlığını Buraya Girebilirsiniz" : "Yönetici başlık girecek..."}
+              value={story}
+              onChange={e => isOwner && updateStory(e.target.value)}
+              readOnly={!isOwner}
+              className="w-full px-3 py-2 rounded-lg text-sm outline-none border transition-colors"
+              style={{
+                background: theme.bg,
+                borderColor: theme.border,
+                color: theme.text,
+                fontFamily: 'Inter',
+                cursor: isOwner ? 'text' : 'default',
+                opacity: isOwner ? 1 : 0.7,
+              }} />
           </div>
 
           {/* Team Members */}

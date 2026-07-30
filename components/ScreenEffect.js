@@ -129,21 +129,6 @@ function FireworksEffect({ onDone }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
-      <div style={{
-        position: 'absolute', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        fontSize: '3.5rem', fontWeight: 900,
-        fontFamily: 'Space Grotesk, sans-serif',
-        textAlign: 'center', lineHeight: 1.3,
-        animation: 'fwPop 0.5s cubic-bezier(0.36,0.07,0.19,0.97) both',
-        textShadow: '0 0 40px #F5C842, 0 0 80px #F5C842',
-        color: '#F5C842',
-        whiteSpace: 'nowrap',
-      }}>
-        🎆 OY BİRLİĞİ! 🎆<br/>
-        <span style={{ fontSize: '1.8rem', color: '#3DFFA0', textShadow: '0 0 30px #3DFFA0' }}>Harikasınız Hocalar! 🚀</span>
-      </div>
-      <style>{`@keyframes fwPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}70%{transform:translate(-50%,-50%) scale(1.1)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}`}</style>
     </div>
   )
 }
@@ -189,15 +174,15 @@ function MoneyRainEffect({ onDone }) {
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
 
-    const SYMBOLS = ['💵','💴','💶','💷','💰','🤑','💸','$','€','₺','¥','£']
-    const bills = Array.from({ length: 60 }, () => ({
+    const SYMBOLS = ['💵','💵','💵','💵','💵']
+    const bills = Array.from({ length: 150 }, () => ({
       x: Math.random() * canvas.width,
       y: -80 - Math.random() * canvas.height,
-      size: 24 + Math.random() * 32,
-      speed: 3 + Math.random() * 5,
+      size: 28 + Math.random() * 36,
+      speed: 3 + Math.random() * 6,
       wobble: Math.random() * Math.PI * 2,
       wobbleSpeed: 0.03 + Math.random() * 0.05,
-      symbol: SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)],
+      symbol: '💵',
       rotation: (Math.random() - 0.5) * 0.5,
     }))
 
@@ -232,23 +217,8 @@ function MoneyRainEffect({ onDone }) {
   }, [])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', background: 'rgba(0,0,0,0.6)' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', background: 'rgba(0,0,0,0.5)' }}>
       <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-      <div style={{
-        position: 'absolute', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        textAlign: 'center',
-        animation: 'moneyPop 0.5s cubic-bezier(0.36,0.07,0.19,0.97) both',
-      }}>
-        <div style={{ fontSize: '5rem', lineHeight: 1 }}>🤑</div>
-        <div style={{ fontSize: '2.2rem', fontWeight: 900, fontFamily: 'Space Grotesk, sans-serif', color: '#F5C842', textShadow: '0 0 30px #F5C842, 0 0 60px #F5C842', marginTop: 12, whiteSpace: 'nowrap' }}>
-          PARA YAĞIYOR!
-        </div>
-        <div style={{ fontSize: '1rem', color: '#3DFFA0', fontFamily: 'Space Grotesk', marginTop: 6, textShadow: '0 0 20px #3DFFA0' }}>
-          Bu ticket çok para kazandırır 💸
-        </div>
-      </div>
-      <style>{`@keyframes moneyPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}70%{transform:translate(-50%,-50%) scale(1.1)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}`}</style>
     </div>
   )
 }
@@ -300,20 +270,13 @@ function SleepEffect({ onDone }) {
         }}>{z.char}</div>
       ))}
 
-      {/* Main message */}
+      {/* Big sleeping emoji center */}
       <div style={{
         position: 'absolute', top: '42%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        textAlign: 'center',
-      }}>
-        <div style={{ fontSize: '6rem', lineHeight: 1, animation: 'sleepBob 2s ease-in-out infinite' }}>😴</div>
-        <div style={{ fontSize: '2.2rem', fontWeight: 900, fontFamily: 'Space Grotesk, sans-serif', color: '#A0A8FF', textShadow: '0 0 30px rgba(160,168,255,0.8)', marginTop: 16, whiteSpace: 'nowrap' }}>
-          Birileri uyudu...
-        </div>
-        <div style={{ fontSize: '1rem', color: '#7B82A8', fontFamily: 'Space Grotesk', marginTop: 8 }}>
-          Bu toplantı biraz uzadı sanırım 💤
-        </div>
-      </div>
+        fontSize: '8rem', lineHeight: 1,
+        animation: 'sleepBob 2s ease-in-out infinite',
+      }}>😴</div>
 
       <style>{`
         @keyframes sleepFloat {

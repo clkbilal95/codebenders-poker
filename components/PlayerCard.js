@@ -23,9 +23,6 @@ const EFFECTS = [
   { id: 'sleep',     emoji: '😴', label: 'Uyku Modu' },
 ]
 
-// DiceBear adventurer URL
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
-}
 
 export default function PlayerCard({ player, currentPlayerId, votesVisible, onSendGift, onSendEffect, lastGift }) {
   const [showGiftMenu,   setShowGiftMenu]   = useState(false)

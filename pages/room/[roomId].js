@@ -219,7 +219,7 @@ export default function RoomPage() {
   if (phase === 'join') {
     return (
       <>
-        <Head><title>Codebenders Poker – Katıl</title></Head>
+        <Head><title>Biletbank Poker – Katıl</title></Head>
         <div style={{ background: theme.bg, minHeight: '100vh' }}>
           <StarField />
           <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
@@ -264,7 +264,7 @@ export default function RoomPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{playerName.trim()}</p>
-                      <p className="text-xs" style={{ color: theme.muted }}>Codebenders üyesi</p>
+                      <p className="text-xs" style={{ color: theme.muted }}>Biletbank üyesi</p>
                     </div>
                   </div>
                 )}
@@ -289,7 +289,7 @@ export default function RoomPage() {
   // ─── GAME SCREEN ───
   return (
     <>
-      <Head><title>Codebenders Poker 🃏</title></Head>
+      <Head><title>Biletbank Poker 🃏</title></Head>
       <div style={{ background: theme.bg, minHeight: '100vh' }}>
         <StarField />
         <Toast toasts={toasts} />
@@ -305,7 +305,7 @@ export default function RoomPage() {
           <div className="flex items-center gap-3">
             <span className="text-xl">🃏</span>
             <div>
-              <h1 className="font-bold text-sm" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>Codebenders Poker</h1>
+              <h1 className="font-bold text-sm" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>Biletbank Poker</h1>
               <p className="text-xs" style={{ color: theme.muted }}>
                 Oda: <span style={{ letterSpacing: 2 }}>{roomId}</span>
                 {isOwner && <span style={{ color: '#F5C842', marginLeft: 8 }}>👑 Yönetici</span>}

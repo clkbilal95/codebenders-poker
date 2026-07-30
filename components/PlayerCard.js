@@ -19,6 +19,8 @@ const EFFECTS = [
   { id: 'matrix',    emoji: '💊', label: 'Matrix' },
   { id: 'fireworks', emoji: '🎆', label: 'Havai Fişek' },
   { id: 'shake',     emoji: '💥', label: 'Ekranı Salla' },
+  { id: 'money',     emoji: '🤑', label: 'Para Yağmuru' },
+  { id: 'sleep',     emoji: '😴', label: 'Uyku Modu' },
 ]
 
 export default function PlayerCard({ player, currentPlayerId, votesVisible, onSendGift, onSendEffect }) {

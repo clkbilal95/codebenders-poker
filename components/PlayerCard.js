@@ -24,7 +24,6 @@ const EFFECTS = [
 ]
 
 // DiceBear adventurer URL
-function avatarUrl(seed) {
   return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
 }
 
@@ -77,7 +76,7 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
       )}
 
       {/* Avatar — DiceBear */}
-      <div className="relative flex items-center justify-center rounded-2xl overflow-hidden"
+      <div className="relative flex items-center justify-center rounded-2xl"
         style={{
           width: 56, height: 56,
           background: isMe ? 'linear-gradient(135deg,#6C63FF44,#6C63FF77)'
@@ -87,11 +86,7 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
           boxShadow: isMe ? '0 0 18px rgba(108,99,255,0.4)'
             : player.is_owner ? '0 0 14px rgba(245,200,66,0.35)' : 'none',
         }}>
-        <img
-          src={avatarUrl(player.avatar || player.name)}
-          alt={player.name}
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+        <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>{player.avatar}</span>
         {hasVoted && !votesVisible && (
           <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
             style={{ background: '#3DFFA0', color: '#0D0F1A', fontSize: '0.65rem', fontWeight: 'bold', zIndex: 2 }}>✓</div>

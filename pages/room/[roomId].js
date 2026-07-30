@@ -13,15 +13,19 @@ import { v4 as uuidv4 } from 'uuid'
 
 const FIBONACCI = ['1', '2', '3', '5', '8', '13', '21', '34', '55', '89', '?', '☕']
 
+const AVATARS = [
+  '🧙‍♂️', '🥷', '🧛', '🤖', '👾', '🐼',
+  '🦁', '🐯', '🦄', '🐉', '🚀', '⚡',
+  '🌙', '👨‍💻', '🕵️‍♂️', '🧑‍🔬', '🦸‍♂️', '🧟‍♂️',
+  '🐺', '🦅', '🐙', '💀', '🎮', '🧑‍✈️',
+  '👩‍💻', '🦸‍♀️',
+]
+
 function addHoca(name) {
   const t = name.trim()
   if (!t) return t
   if (t.toLowerCase().endsWith('hoca')) return t
   return t + ' Hoca'
-}
-
-function avatarUrl(seed) {
-  return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`
 }
 
 export default function RoomPage() {
@@ -30,6 +34,7 @@ export default function RoomPage() {
 
   const [phase, setPhase] = useState('join')
   const [playerName, setPlayerName] = useState('')
+  const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0])
   const [playerId] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem('playerId')
@@ -50,7 +55,6 @@ export default function RoomPage() {
   const [activeEffect, setActiveEffect] = useState(null)
   const [flyingGifts, setFlyingGifts] = useState([])
   const [toasts, setToasts] = useState([])
-  // last gift per player: { [playerId]: giftImg }
   const [lastGifts, setLastGifts] = useState({})
   const playerRefs = useRef({})
   const resultsRef = useRef(null)
@@ -79,11 +83,9 @@ export default function RoomPage() {
     const { data: roomData } = await supabase.from('rooms').select('owner_id').eq('id', roomId).single()
     const amOwner = roomData?.owner_id === playerId
     setIsOwner(amOwner)
-    // Use name as avatar seed
     await supabase.from('players').upsert({
       id: playerId, room_id: roomId, name: nameWithHoca,
-      avatar: nameWithHoca, // seed for DiceBear
-      vote: null, online: true, is_owner: amOwner,
+      avatar: selectedAvatar, vote: null, online: true, is_owner: amOwner,
     })
     setPhase('game')
   }
@@ -110,9 +112,8 @@ export default function RoomPage() {
         if (payload.new) {
           setRoom(payload.new); setStory(payload.new.current_story || '')
           if (payload.new.votes_visible === false && payload.old?.votes_visible === true) setMyVote(null)
-          if (payload.new.votes_visible === true && payload.old?.votes_visible === false) {
+          if (payload.new.votes_visible === true && payload.old?.votes_visible === false)
             setTimeout(() => resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 400)
-          }
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` }, payload => {
@@ -132,7 +133,6 @@ export default function RoomPage() {
 
     const giftSub = supabase.channel(`gifts-${roomId}`)
       .on('broadcast', { event: 'gift' }, ({ payload }) => {
-        // Update last gift badge for recipient
         setLastGifts(prev => ({ ...prev, [payload.toId]: payload.giftImg }))
         if (payload.toId === playerId)
           addToast(`${payload.fromName} ${payload.giftMsg}`, '🎁', 'gift')
@@ -183,13 +183,11 @@ export default function RoomPage() {
       ? { x: targetRect.left + targetRect.width / 2, y: targetRect.top + targetRect.height / 2 }
       : { x: window.innerWidth / 2, y: 100 }
     setFlyingGifts(prev => [...prev, { id: uuidv4(), img: gift.img, fromPos, toPos }])
-    // Update last gift locally immediately
     setLastGifts(prev => ({ ...prev, [toPlayer.id]: gift.img }))
     supabase.channel(`gifts-${roomId}`).send({
       type: 'broadcast', event: 'gift',
       payload: {
-        fromId: playerId,
-        fromName: players.find(p => p.id === playerId)?.name || '',
+        fromId: playerId, fromName: players.find(p => p.id === playerId)?.name || '',
         toId: toPlayer.id, toName: toPlayer.name,
         giftLabel: gift.label, giftImg: gift.img, giftMsg: gift.msg,
       }
@@ -201,8 +199,7 @@ export default function RoomPage() {
     supabase.channel(`gifts-${roomId}`).send({
       type: 'broadcast', event: 'effect',
       payload: {
-        fromId: playerId,
-        fromName: players.find(p => p.id === playerId)?.name || '',
+        fromId: playerId, fromName: players.find(p => p.id === playerId)?.name || '',
         toId: toPlayer.id, toName: toPlayer.name,
         effectId: effect.id, effectLabel: effect.label, effectEmoji: effect.emoji,
       }
@@ -215,14 +212,13 @@ export default function RoomPage() {
 
   // ─── JOIN SCREEN ───
   if (phase === 'join') {
-    const previewName = playerName.trim() ? addHoca(playerName) : null
     return (
       <>
         <Head><title>Biletbank Poker – Katıl</title></Head>
         <div style={{ background: theme.bg, minHeight: '100vh' }}>
           <StarField />
           <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
-            <div className="w-full max-w-sm">
+            <div className="w-full max-w-md">
               <div className="text-center mb-8">
                 <div className="text-5xl mb-3 animate-float">🃏</div>
                 <h1 className="text-3xl font-bold" style={{ fontFamily: 'Space Grotesk', color: theme.accent }}>Odaya Katıl</h1>
@@ -232,22 +228,42 @@ export default function RoomPage() {
               </div>
 
               <div className="rounded-2xl p-6 border" style={{ background: theme.surface, borderColor: theme.border }}>
+                {/* Avatar picker */}
+                <p className="text-sm font-medium mb-3" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Avatarını seç</p>
+                <div className="grid grid-cols-8 gap-2 mb-5">
+                  {AVATARS.map(av => (
+                    <button key={av} onClick={() => setSelectedAvatar(av)}
+                      className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all hover:scale-110"
+                      style={{
+                        background: selectedAvatar === av ? 'linear-gradient(135deg, #6C63FF, #8B85FF)' : theme.card,
+                        border: selectedAvatar === av ? '2px solid #8B85FF' : `2px solid ${theme.border}`,
+                        cursor: 'pointer',
+                        transform: selectedAvatar === av ? 'scale(1.15)' : 'scale(1)',
+                        boxShadow: selectedAvatar === av ? '0 0 12px rgba(108,99,255,0.5)' : 'none',
+                      }}>
+                      {av}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Name */}
                 <p className="text-sm font-medium mb-2" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
                 <input type="text" placeholder="Adını gir..." value={playerName}
                   onChange={e => setPlayerName(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && joinRoom()}
-                  className="w-full px-4 py-3 rounded-xl mb-5 outline-none border focus:border-indigo-500 transition-colors text-sm"
+                  className="w-full px-4 py-3 rounded-xl mb-4 outline-none border focus:border-indigo-500 transition-colors text-sm"
                   style={{ background: theme.bg, borderColor: theme.border, color: theme.text, fontFamily: 'Space Grotesk' }}
                   maxLength={20} autoFocus />
 
-                {/* Avatar preview */}
-                {previewName && (
-                  <div className="flex items-center gap-4 p-4 rounded-xl mb-5" style={{ background: theme.bg }}>
-                    <div style={{ width: 56, height: 56, borderRadius: 16, overflow: 'hidden', border: '2.5px solid #6C63FF', flexShrink: 0 }}>
-                      <img src={avatarUrl(previewName)} alt={previewName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                {/* Preview */}
+                {playerName && (
+                  <div className="flex items-center gap-3 p-3 rounded-xl mb-4" style={{ background: theme.bg }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                      style={{ background: 'linear-gradient(135deg, #6C63FF33, #6C63FF55)', border: '2px solid #6C63FF' }}>
+                      {selectedAvatar}
                     </div>
                     <div>
-                      <p className="font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{previewName}</p>
+                      <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{playerName.trim()}</p>
                       <p className="text-xs" style={{ color: theme.muted }}>Biletbank üyesi</p>
                     </div>
                   </div>

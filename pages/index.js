@@ -12,7 +12,6 @@ const TEAMS = [
     emoji: '⚡',
     color: '#6C63FF',
     glow: 'rgba(108,99,255,0.5)',
-    desc: 'Kodu büker, ticket\'i ezer!',
     gradient: 'linear-gradient(135deg, #6C63FF, #8B85FF)',
   },
   {
@@ -21,7 +20,6 @@ const TEAMS = [
     emoji: '🦅',
     color: '#FF6B9D',
     glow: 'rgba(255,107,157,0.5)',
-    desc: 'Yüksekten uçar, hızlı teslim eder!',
     gradient: 'linear-gradient(135deg, #FF6B9D, #FF8E53)',
   },
 ]
@@ -154,12 +152,9 @@ export default function Home() {
                     {team.emoji}
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold mb-1"
+                    <p className="text-2xl font-bold"
                       style={{ fontFamily: 'Space Grotesk', color: team.color }}>
                       {team.name}
-                    </p>
-                    <p className="text-sm" style={{ color: theme.muted, fontFamily: 'Inter' }}>
-                      {team.desc}
                     </p>
                   </div>
                   <div className="px-6 py-2 rounded-xl text-sm font-semibold text-white"

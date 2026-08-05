@@ -9,10 +9,12 @@ const GIFTS = [
   { img: '/gifts/filtrekahve.jpg',  label: 'Filtre Kahve',     msg: 'sana filtre kahve ısmarlıyor!' },
   { img: '/gifts/tost.jpg',         label: 'Tost',             msg: 'sana tost ısmarlıyor!' },
   { img: '/gifts/pizza.jpg',        label: 'Pizza',            msg: 'sana pizza ısmarlıyor!' },
-  { img: '/gifts/zurna.jpg',        label: 'Zurna Dürüm',      msg: 'sana zurna dürüm ısmarlıyor!' },
-  { img: '/gifts/baklava.jpg',      label: 'Baklava',          msg: 'sana baklava gönderiyor!' },
-  { img: '/gifts/hamburger.jpg',    label: 'Hamburger',        msg: 'sana hamburger ısmarlıyor!' },
-  { img: '/gifts/simit.jpg',        label: 'Ankara Simidi',    msg: 'sana Ankara simidi gönderiyor!' },
+  { img: '/gifts/zurna.jpg',           label: 'Zurna Dürüm',       msg: 'sana zurna dürüm ısmarlıyor!' },
+  { img: '/gifts/baklava.jpg',         label: 'Baklava',            msg: 'sana baklava gönderiyor!' },
+  { img: '/gifts/hamburger.jpg',       label: 'Hamburger',          msg: 'sana hamburger ısmarlıyor!' },
+  { img: '/gifts/simit.jpg',           label: 'Ankara Simidi',      msg: 'sana Ankara simidi gönderiyor!' },
+  { img: '/gifts/beypazarikurusu.jpg', label: 'Beypazarı Kurusu',   msg: 'sana Beypazarı kurusu gönderiyor!' },
+  { img: '/gifts/beypazarisoda.jpg',   label: 'Beypazarı Sodası',   msg: 'sana Beypazarı sodası ısmarlıyor!' },
 ]
 
 const EFFECTS = [

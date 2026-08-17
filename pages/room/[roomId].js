@@ -35,6 +35,23 @@ export default function RoomPage() {
   const [phase, setPhase] = useState('join')
   const [playerName, setPlayerName] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0])
+  const [customAvatar, setCustomAvatar] = useState(null) // base64 uploaded photo
+  const fileInputRef = useRef(null)
+
+  function handlePhotoUpload(e) {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setCustomAvatar(ev.target.result) // base64
+    }
+    reader.readAsDataURL(file)
+  }
+
+  function clearCustomAvatar() {
+    setCustomAvatar(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
   const [playerId] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = sessionStorage.getItem('playerId')
@@ -85,7 +102,8 @@ export default function RoomPage() {
     setIsOwner(amOwner)
     await supabase.from('players').upsert({
       id: playerId, room_id: roomId, name: nameWithHoca,
-      avatar: selectedAvatar, vote: null, online: true, is_owner: amOwner,
+      avatar: customAvatar || selectedAvatar,
+      vote: null, online: true, is_owner: amOwner,
     })
     setPhase('game')
   }
@@ -234,23 +252,70 @@ export default function RoomPage() {
               </div>
 
               <div className="rounded-2xl p-6 border" style={{ background: theme.surface, borderColor: theme.border }}>
-                {/* Avatar picker */}
-                <p className="text-sm font-medium mb-3" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Avatarını seç</p>
-                <div className="grid grid-cols-8 gap-2 mb-5">
-                  {AVATARS.map(av => (
-                    <button key={av} onClick={() => setSelectedAvatar(av)}
-                      className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all hover:scale-110"
-                      style={{
-                        background: selectedAvatar === av ? 'linear-gradient(135deg, #6C63FF, #8B85FF)' : theme.card,
-                        border: selectedAvatar === av ? '2px solid #8B85FF' : `2px solid ${theme.border}`,
-                        cursor: 'pointer',
-                        transform: selectedAvatar === av ? 'scale(1.15)' : 'scale(1)',
-                        boxShadow: selectedAvatar === av ? '0 0 12px rgba(108,99,255,0.5)' : 'none',
-                      }}>
-                      {av}
+                {/* Photo upload */}
+                <p className="text-sm font-medium mb-2" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Avatarını seç</p>
+
+                {/* Upload button */}
+                <div className="mb-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                  {customAvatar ? (
+                    <div className="flex items-center gap-3">
+                      <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', border: '2.5px solid #6C63FF', flexShrink: 0 }}>
+                        <img src={customAvatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium mb-1" style={{ color: '#3DFFA0', fontFamily: 'Space Grotesk' }}>✓ Fotoğraf yüklendi</p>
+                        <button onClick={clearCustomAvatar}
+                          className="text-xs px-3 py-1 rounded-lg transition-all hover:scale-105"
+                          style={{ background: '#1E2438', border: '1px solid #2A3050', color: '#FF6B9D', cursor: 'pointer', fontFamily: 'Space Grotesk' }}>
+                          Kaldır
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <button onClick={() => fileInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2 rounded-xl transition-all hover:scale-[1.02] w-full"
+                      style={{ background: theme.card, border: `2px dashed ${theme.border}`, color: theme.muted, cursor: 'pointer', fontFamily: 'Space Grotesk', fontSize: '0.85rem' }}>
+                      <span style={{ fontSize: '1.2rem' }}>📷</span>
+                      <span>Fotoğraf yükle</span>
+                      <span className="ml-auto text-xs" style={{ color: theme.muted, opacity: 0.6 }}>opsiyonel</span>
                     </button>
-                  ))}
+                  )}
                 </div>
+
+                {/* Divider */}
+                {!customAvatar && (
+                  <>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex-1 h-px" style={{ background: theme.border }} />
+                      <span className="text-xs" style={{ color: theme.muted }}>veya emoji seç</span>
+                      <div className="flex-1 h-px" style={{ background: theme.border }} />
+                    </div>
+
+                    {/* Emoji grid */}
+                    <div className="grid grid-cols-8 gap-2 mb-5">
+                      {AVATARS.map(av => (
+                        <button key={av} onClick={() => setSelectedAvatar(av)}
+                          className="w-10 h-10 rounded-xl text-xl flex items-center justify-center transition-all hover:scale-110"
+                          style={{
+                            background: selectedAvatar === av ? 'linear-gradient(135deg, #6C63FF, #8B85FF)' : theme.card,
+                            border: selectedAvatar === av ? '2px solid #8B85FF' : `2px solid ${theme.border}`,
+                            cursor: 'pointer',
+                            transform: selectedAvatar === av ? 'scale(1.15)' : 'scale(1)',
+                            boxShadow: selectedAvatar === av ? '0 0 12px rgba(108,99,255,0.5)' : 'none',
+                          }}>
+                          {av}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 {/* Name */}
                 <p className="text-sm font-medium mb-2" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>Adın</p>
@@ -264,9 +329,12 @@ export default function RoomPage() {
                 {/* Preview */}
                 {playerName && (
                   <div className="flex items-center gap-3 p-3 rounded-xl mb-4" style={{ background: theme.bg }}>
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-                      style={{ background: 'linear-gradient(135deg, #6C63FF33, #6C63FF55)', border: '2px solid #6C63FF' }}>
-                      {selectedAvatar}
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden"
+                      style={{ background: 'linear-gradient(135deg, #6C63FF33, #6C63FF55)', border: '2px solid #6C63FF', flexShrink: 0 }}>
+                      {customAvatar
+                        ? <img src={customAvatar} alt="avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : <span style={{ fontSize: '1.2rem' }}>{selectedAvatar}</span>
+                      }
                     </div>
                     <div>
                       <p className="text-sm font-semibold" style={{ fontFamily: 'Space Grotesk', color: theme.text }}>{playerName.trim()}</p>

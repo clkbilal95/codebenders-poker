@@ -26,7 +26,7 @@ const EFFECTS = [
 ]
 
 
-export default function PlayerCard({ player, currentPlayerId, votesVisible, onSendGift, onSendEffect, lastGift }) {
+export default function PlayerCard({ player, currentPlayerId, votesVisible, onSendGift, onSendEffect, lastGift, isOwner, onKick }) {
   const [showGiftMenu,   setShowGiftMenu]   = useState(false)
   const [showEffectMenu, setShowEffectMenu] = useState(false)
   const buttonRef     = useRef(null)
@@ -72,6 +72,17 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
           <span style={{ fontSize: '0.75rem' }}>👑</span>
           <span style={{ color: '#F5C842', fontSize: '0.6rem', fontFamily: 'Space Grotesk', fontWeight: 600 }}>YÖNETİCİ</span>
         </div>
+      )}
+
+      {/* Kick button — only owner sees, only for non-owner players */}
+      {isOwner && !isMe && !player.is_owner && (
+        <button
+          onClick={() => onKick(player)}
+          title={`${player.name}'ı odadan çıkar`}
+          className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center transition-all hover:scale-110 z-10"
+          style={{ background: '#FF4444', border: '2px solid #0D0F1A', cursor: 'pointer', fontSize: '0.6rem', color: 'white', fontWeight: 'bold', lineHeight: 1 }}>
+          ✕
+        </button>
       )}
 
       {/* Avatar — DiceBear */}

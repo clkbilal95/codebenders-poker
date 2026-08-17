@@ -195,6 +195,12 @@ export default function RoomPage() {
     addToast(`🎁 ${toPlayer.name}'ya ${gift.label} gönderildi!`, '🎁', 'gift')
   }
 
+  async function handleKick(player) {
+    if (!isOwner) return
+    await supabase.from('players').update({ online: false }).eq('id', player.id)
+    addToast(`${player.name} odadan çıkarıldı.`, '🚪', 'info')
+  }
+
   function handleSendEffect(effect, toPlayer) {
     supabase.channel(`gifts-${roomId}`).send({
       type: 'broadcast', event: 'effect',
@@ -357,6 +363,8 @@ export default function RoomPage() {
                     onSendGift={handleSendGift}
                     onSendEffect={handleSendEffect}
                     lastGift={lastGifts[player.id] || null}
+                    isOwner={isOwner}
+                    onKick={handleKick}
                   />
                 </div>
               ))}

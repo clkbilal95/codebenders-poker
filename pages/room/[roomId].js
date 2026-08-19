@@ -35,8 +35,18 @@ export default function RoomPage() {
   const [phase, setPhase] = useState('join')
   const [playerName, setPlayerName] = useState('')
   const [selectedAvatar, setSelectedAvatar] = useState(AVATARS[0])
-  const [customAvatar, setCustomAvatar] = useState(null) // base64 uploaded photo
+  const [customAvatar, setCustomAvatar] = useState(null)
   const fileInputRef = useRef(null)
+
+  // ── Persistent player ID (localStorage survives refresh) ──
+  const [playerId] = useState(() => {
+    if (typeof window === 'undefined') return uuidv4()
+    const stored = localStorage.getItem('cb_playerId')
+    if (stored) return stored
+    const newId = uuidv4()
+    localStorage.setItem('cb_playerId', newId)
+    return newId
+  })
 
   async function handlePhotoUpload(e) {
     const file = e.target.files[0]
@@ -65,17 +75,6 @@ export default function RoomPage() {
     setCustomAvatar(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
-  const [playerId] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem('playerId')
-      if (stored) return stored
-      const newId = uuidv4()
-      sessionStorage.setItem('playerId', newId)
-      return newId
-    }
-    return uuidv4()
-  })
-
   const [room, setRoom] = useState(null)
   const [players, setPlayers] = useState([])
   const [myVote, setMyVote] = useState(null)
@@ -86,6 +85,10 @@ export default function RoomPage() {
   const [flyingGifts, setFlyingGifts] = useState([])
   const [toasts, setToasts] = useState([])
   const [lastGifts, setLastGifts] = useState({})
+  const [timer, setTimer] = useState(null)       // null | number (seconds remaining)
+  const [timerActive, setTimerActive] = useState(false)
+  const [timerDuration, setTimerDuration] = useState(60)
+  const timerRef = useRef(null)
   const playerRefs = useRef({})
   const resultsRef = useRef(null)
 
@@ -107,17 +110,38 @@ export default function RoomPage() {
     headerBg: 'rgba(240,242,255,0.95)',
   }
 
+  // ── Auto-rejoin if player was already in this room ──
+  useEffect(() => {
+    if (!roomId || typeof window === 'undefined') return
+    const savedRoom = localStorage.getItem('cb_roomId')
+    const savedName = localStorage.getItem('cb_playerName')
+    const savedAvatar = localStorage.getItem('cb_playerAvatar')
+    if (savedRoom === roomId && savedName) {
+      setPlayerName(savedName)
+      if (savedAvatar) {
+        if (AVATARS.includes(savedAvatar)) setSelectedAvatar(savedAvatar)
+        else setCustomAvatar(savedAvatar)
+      }
+      // Re-mark as online and jump to game
+      supabase.from('players').update({ online: true }).eq('id', playerId).then(() => setPhase('game'))
+    }
+  }, [roomId, playerId])
+
   async function joinRoom() {
     if (!playerName.trim() || !roomId) return
     const nameWithHoca = addHoca(playerName)
     const { data: roomData } = await supabase.from('rooms').select('owner_id').eq('id', roomId).single()
     const amOwner = roomData?.owner_id === playerId
     setIsOwner(amOwner)
+    const avatar = customAvatar || selectedAvatar
     await supabase.from('players').upsert({
       id: playerId, room_id: roomId, name: nameWithHoca,
-      avatar: customAvatar || selectedAvatar,
-      vote: null, online: true, is_owner: amOwner,
+      avatar, vote: null, online: true, is_owner: amOwner,
     })
+    // Save session to localStorage
+    localStorage.setItem('cb_roomId', roomId)
+    localStorage.setItem('cb_playerName', nameWithHoca)
+    localStorage.setItem('cb_playerAvatar', avatar)
     setPhase('game')
   }
 
@@ -171,6 +195,14 @@ export default function RoomPage() {
           addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftLabel}`, '🎁', 'gift')
       })
       .on('broadcast', { event: 'consensus_fireworks' }, ({ payload }) => setActiveEffect({ type: 'fireworks', vote: payload?.vote || null }))
+      .on('broadcast', { event: 'timer_start' }, ({ payload }) => {
+        setTimer(payload.seconds)
+        setTimerActive(true)
+      })
+      .on('broadcast', { event: 'timer_stop' }, () => {
+        setTimerActive(false)
+        setTimer(null)
+      })
       .on('broadcast', { event: 'effect' }, ({ payload }) => {
         if (payload.toId === playerId) {
           setActiveEffect(payload.effectId)
@@ -204,6 +236,32 @@ export default function RoomPage() {
     await supabase.from('rooms').update({ votes_visible: false }).eq('id', roomId)
     await supabase.from('players').update({ vote: null }).eq('room_id', roomId)
     setMyVote(null)
+    setTimer(null)
+    setTimerActive(false)
+  }
+
+  // ── Timer countdown ──
+  useEffect(() => {
+    if (!timerActive || timer === null) return
+    if (timer <= 0) {
+      setTimerActive(false)
+      addToast('⏰ Süre doldu!', '⏰', 'info')
+      return
+    }
+    const t = setTimeout(() => setTimer(prev => prev - 1), 1000)
+    return () => clearTimeout(t)
+  }, [timer, timerActive, addToast])
+
+  function startTimer() {
+    setTimer(timerDuration)
+    setTimerActive(true)
+    supabase.channel(`gifts-${roomId}`).send({ type: 'broadcast', event: 'timer_start', payload: { seconds: timerDuration } })
+  }
+
+  function stopTimer() {
+    setTimer(null)
+    setTimerActive(false)
+    supabase.channel(`gifts-${roomId}`).send({ type: 'broadcast', event: 'timer_stop', payload: {} })
   }
 
   async function updateStory(val) { setStory(val); await supabase.from('rooms').update({ current_story: val }).eq('id', roomId) }
@@ -431,6 +489,89 @@ export default function RoomPage() {
               style={{ background: theme.bg, borderColor: theme.border, color: theme.text, fontFamily: 'Inter', cursor: isOwner ? 'text' : 'default', opacity: isOwner ? 1 : 0.7 }} />
           </div>
 
+          {/* ── TIMER ── */}
+          {(timer !== null || isOwner) && !votesVisible && (
+            <div className="rounded-2xl p-4 border flex items-center gap-4 flex-wrap"
+              style={{ background: theme.surface, borderColor: timer !== null && timer <= 10 ? '#FF4444' : theme.border,
+                boxShadow: timer !== null && timer <= 10 ? '0 0 20px rgba(255,68,68,0.2)' : 'none',
+                transition: 'all 0.3s' }}>
+              {/* Big countdown */}
+              {timer !== null ? (
+                <div className="flex items-center gap-3 flex-1">
+                  <span style={{ fontSize: '1.5rem' }}>{timer <= 10 ? '🔴' : timer <= 30 ? '🟡' : '🟢'}</span>
+                  <div>
+                    <div style={{
+                      fontFamily: 'Space Grotesk', fontWeight: 800,
+                      fontSize: '2.2rem', lineHeight: 1,
+                      color: timer <= 10 ? '#FF4444' : timer <= 30 ? '#F5C842' : '#3DFFA0',
+                      fontVariantNumeric: 'tabular-nums',
+                      transition: 'color 0.3s',
+                    }}>
+                      {String(Math.floor(timer / 60)).padStart(2, '0')}:{String(timer % 60).padStart(2, '0')}
+                    </div>
+                    <div style={{ fontFamily: 'Space Grotesk', fontSize: '0.7rem', color: theme.muted, marginTop: 2 }}>
+                      {timerActive ? 'kalan süre' : 'süre doldu'}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1">
+                  <span style={{ fontFamily: 'Space Grotesk', fontSize: '0.85rem', color: theme.muted }}>⏱ Timer</span>
+                </div>
+              )}
+
+              {/* Owner controls */}
+              {isOwner && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  {timer === null && (
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center rounded-xl overflow-hidden"
+                        style={{ border: `1px solid ${theme.border}`, background: theme.card }}>
+                        <input
+                          type="number" min="0" max="99"
+                          value={Math.floor(timerDuration / 60)}
+                          onChange={e => {
+                            const mins = Math.max(0, Math.min(99, parseInt(e.target.value) || 0))
+                            setTimerDuration(mins * 60 + (timerDuration % 60))
+                          }}
+                          className="text-center outline-none bg-transparent"
+                          style={{ width: 44, padding: '4px 2px', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '1rem', color: theme.text, MozAppearance: 'textfield' }}
+                        />
+                        <span style={{ color: theme.muted, fontSize: '0.8rem', fontFamily: 'Space Grotesk', padding: '0 2px' }}>dk</span>
+                        <div style={{ width: 1, height: 24, background: theme.border }} />
+                        <input
+                          type="number" min="0" max="59"
+                          value={timerDuration % 60}
+                          onChange={e => {
+                            const secs = Math.max(0, Math.min(59, parseInt(e.target.value) || 0))
+                            setTimerDuration(Math.floor(timerDuration / 60) * 60 + secs)
+                          }}
+                          className="text-center outline-none bg-transparent"
+                          style={{ width: 44, padding: '4px 2px', fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: '1rem', color: theme.text, MozAppearance: 'textfield' }}
+                        />
+                        <span style={{ color: theme.muted, fontSize: '0.8rem', fontFamily: 'Space Grotesk', padding: '0 6px 0 2px' }}>sn</span>
+                      </div>
+                      <style>{`input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }`}</style>
+                    </div>
+                  )}
+                  {timer === null ? (
+                    <button onClick={startTimer}
+                      className="px-4 py-1.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                      style={{ background: 'linear-gradient(135deg,#6C63FF,#8B85FF)', color: 'white', fontFamily: 'Space Grotesk', cursor: 'pointer' }}>
+                      ▶ Başlat
+                    </button>
+                  ) : (
+                    <button onClick={stopTimer}
+                      className="px-4 py-1.5 rounded-xl text-sm font-semibold transition-all hover:scale-105"
+                      style={{ background: '#1E2438', border: '1px solid #FF4444', color: '#FF4444', fontFamily: 'Space Grotesk', cursor: 'pointer' }}>
+                      ■ Durdur
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div>
             <p className="text-xs font-semibold mb-4" style={{ color: theme.muted, fontFamily: 'Space Grotesk', letterSpacing: '0.08em' }}>
               TEAM MEMBERS ({players.length})
@@ -479,11 +620,19 @@ export default function RoomPage() {
             )}
             {votesVisible && isOwner && (
               <button onClick={resetVotes}
-                className="px-5 py-2 rounded-xl font-semibold text-sm transition-all hover:scale-105"
-                style={{ background: theme.card, border: '1px solid #F5C842', color: '#F5C842', fontFamily: 'Space Grotesk', cursor: 'pointer' }}>
-                🔄 Yeniden Oyla
+                className="px-8 py-3 rounded-2xl font-bold text-base transition-all hover:scale-105 active:scale-95"
+                style={{
+                  background: 'linear-gradient(135deg, #F5C842, #FFB347)',
+                  color: '#0D0F1A',
+                  fontFamily: 'Space Grotesk',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 30px rgba(245,200,66,0.4)',
+                  animation: 'newRoundPulse 2s ease-in-out infinite',
+                }}>
+                🔄 Yeni El Başlat
               </button>
             )}
+            <style>{`@keyframes newRoundPulse { 0%,100%{box-shadow:0 0 30px rgba(245,200,66,0.4)} 50%{box-shadow:0 0 50px rgba(245,200,66,0.7)} }`}</style>
           </div>
 
           {votesVisible && <div ref={resultsRef}><VoteResults players={players} theme={theme} /></div>}

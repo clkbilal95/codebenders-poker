@@ -111,7 +111,7 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
       {/* Last gift badge */}
       {lastGift && (
         <div style={{
-          position: 'absolute', top: -6, right: 4,
+          position: 'absolute', bottom: -6, left: 4,
           width: 22, height: 22, borderRadius: 8, overflow: 'hidden',
           border: '2px solid #0D0F1A', zIndex: 3,
           boxShadow: '0 2px 8px rgba(0,0,0,0.4)',

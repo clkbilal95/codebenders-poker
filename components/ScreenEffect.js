@@ -50,7 +50,7 @@ function MatrixEffect({ onDone }) {
 }
 
 // ─── FIREWORKS ────────────────────────────────────────────────────────────────
-function FireworksEffect({ onDone }) {
+function FireworksEffect({ onDone, consensusVote }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -129,6 +129,54 @@ function FireworksEffect({ onDone }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} />
+      {consensusVote && (
+        <div style={{
+          position: 'absolute', top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          textAlign: 'center', pointerEvents: 'none',
+          animation: 'consensusPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both',
+        }}>
+          <div style={{
+            background: 'rgba(13,15,26,0.82)',
+            border: '2px solid #6C63FF',
+            borderRadius: 24,
+            padding: '20px 36px',
+            boxShadow: '0 0 60px rgba(108,99,255,0.5), 0 0 120px rgba(108,99,255,0.2)',
+          }}>
+            <div style={{ fontSize: '2.8rem', marginBottom: 4 }}>🎉</div>
+            <div style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 700,
+              fontSize: '1.05rem',
+              color: '#A0A8CC',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+              marginBottom: 8,
+            }}>Oy Birliği</div>
+            <div style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 800,
+              fontSize: '3.2rem',
+              color: '#FFFFFF',
+              lineHeight: 1,
+              textShadow: '0 0 30px rgba(108,99,255,0.9)',
+            }}>{consensusVote}</div>
+            <div style={{
+              fontFamily: 'Space Grotesk, sans-serif',
+              fontWeight: 500,
+              fontSize: '1rem',
+              color: '#8B85FF',
+              marginTop: 6,
+            }}>Herkes aynı puanı verdi!</div>
+          </div>
+        </div>
+      )}
+      <style>{`
+        @keyframes consensusPop {
+          from { opacity:0; transform: translate(-50%,-50%) scale(0.6); }
+          to   { opacity:1; transform: translate(-50%,-50%) scale(1); }
+        }
+      `}</style>
     </div>
   )
 }
@@ -294,12 +342,16 @@ function SleepEffect({ onDone }) {
 }
 
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
+// effect can be a string ('matrix', 'fireworks', ...) or an object { type: 'fireworks', vote: '8' }
 export default function ScreenEffect({ effect, onDone }) {
   if (!effect) return null
-  if (effect === 'matrix')    return <MatrixEffect    onDone={onDone} />
-  if (effect === 'fireworks') return <FireworksEffect onDone={onDone} />
-  if (effect === 'shake')     return <ShakeEffect     onDone={onDone} />
-  if (effect === 'money')     return <MoneyRainEffect onDone={onDone} />
-  if (effect === 'sleep')     return <SleepEffect     onDone={onDone} />
+  const effectType = typeof effect === 'object' ? effect.type : effect
+  const consensusVote = typeof effect === 'object' ? effect.vote : null
+
+  if (effectType === 'matrix')    return <MatrixEffect    onDone={onDone} />
+  if (effectType === 'fireworks') return <FireworksEffect onDone={onDone} consensusVote={consensusVote} />
+  if (effectType === 'shake')     return <ShakeEffect     onDone={onDone} />
+  if (effectType === 'money')     return <MoneyRainEffect onDone={onDone} />
+  if (effectType === 'sleep')     return <SleepEffect     onDone={onDone} />
   return null
 }

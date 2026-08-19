@@ -44,10 +44,10 @@ export default function Home() {
 
   function getOrCreatePlayerId() {
     if (typeof window === 'undefined') return uuidv4()
-    const stored = sessionStorage.getItem('playerId')
+    const stored = localStorage.getItem('cb_playerId')
     if (stored) return stored
     const newId = uuidv4()
-    sessionStorage.setItem('playerId', newId)
+    localStorage.setItem('cb_playerId', newId)
     return newId
   }
 

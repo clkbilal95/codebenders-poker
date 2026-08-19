@@ -86,7 +86,7 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
       )}
 
       {/* Avatar — photo or emoji */}
-      <div className="relative flex items-center justify-center rounded-2xl overflow-hidden"
+      <div className="relative flex items-center justify-center rounded-2xl"
         style={{
           width: 56, height: 56,
           background: isMe ? 'linear-gradient(135deg,#6C63FF44,#6C63FF77)'
@@ -96,13 +96,15 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
           boxShadow: isMe ? '0 0 18px rgba(108,99,255,0.4)'
             : player.is_owner ? '0 0 14px rgba(245,200,66,0.35)' : 'none',
         }}>
-        {player.avatar && player.avatar.startsWith('data:')
-          ? <img src={player.avatar} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {player.avatar && (player.avatar.startsWith('data:') || player.avatar.startsWith('http'))
+          ? <img src={player.avatar} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
           : <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>{player.avatar}</span>
         }
         {hasVoted && !votesVisible && (
-          <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center"
-            style={{ background: '#3DFFA0', color: '#0D0F1A', fontSize: '0.65rem', fontWeight: 'bold', zIndex: 2 }}>✓</div>
+          <div className="absolute flex items-center justify-center"
+            style={{ bottom: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
+              background: '#3DFFA0', color: '#0D0F1A', fontSize: '0.65rem',
+              fontWeight: 'bold', zIndex: 10, border: '2px solid #0D0F1A' }}>✓</div>
         )}
       </div>
 

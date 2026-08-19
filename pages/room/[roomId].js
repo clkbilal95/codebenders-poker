@@ -38,14 +38,27 @@ export default function RoomPage() {
   const [customAvatar, setCustomAvatar] = useState(null) // base64 uploaded photo
   const fileInputRef = useRef(null)
 
-  function handlePhotoUpload(e) {
+  async function handlePhotoUpload(e) {
     const file = e.target.files[0]
     if (!file) return
+
+    // Show local preview immediately
     const reader = new FileReader()
-    reader.onload = (ev) => {
-      setCustomAvatar(ev.target.result) // base64
-    }
+    reader.onload = (ev) => setCustomAvatar(ev.target.result)
     reader.readAsDataURL(file)
+
+    // Upload to Supabase Storage so everyone can see it
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `avatars/${playerId}-${Date.now()}.${ext}`
+      const { error } = await supabase.storage.from('avatars').upload(path, file, { upsert: true, contentType: file.type })
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
+        if (urlData?.publicUrl) setCustomAvatar(urlData.publicUrl)
+      }
+    } catch (_) {
+      // Keep base64 fallback if storage fails
+    }
   }
 
   function clearCustomAvatar() {

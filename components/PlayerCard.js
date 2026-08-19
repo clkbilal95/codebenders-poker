@@ -100,25 +100,25 @@ export default function PlayerCard({ player, currentPlayerId, votesVisible, onSe
           ? <img src={player.avatar} alt={player.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
           : <span style={{ fontSize: '1.8rem', lineHeight: 1 }}>{player.avatar}</span>
         }
+        {/* Voted tick — bottom right */}
         {hasVoted && !votesVisible && (
           <div className="absolute flex items-center justify-center"
             style={{ bottom: -6, right: -6, width: 20, height: 20, borderRadius: '50%',
               background: '#3DFFA0', color: '#0D0F1A', fontSize: '0.65rem',
               fontWeight: 'bold', zIndex: 10, border: '2px solid #0D0F1A' }}>✓</div>
         )}
+        {/* Last gift badge — bottom left, inside avatar */}
+        {lastGift && (
+          <div style={{
+            position: 'absolute', bottom: -6, left: -6,
+            width: 22, height: 22, borderRadius: 8, overflow: 'hidden',
+            border: '2px solid #0D0F1A', zIndex: 3,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+          }}>
+            <img src={lastGift} alt="gift" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </div>
+        )}
       </div>
-
-      {/* Last gift badge */}
-      {lastGift && (
-        <div style={{
-          position: 'absolute', bottom: -6, left: 4,
-          width: 22, height: 22, borderRadius: 8, overflow: 'hidden',
-          border: '2px solid #0D0F1A', zIndex: 3,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-        }}>
-          <img src={lastGift} alt="gift" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      )}
 
       {/* Name */}
       <div className="mt-2 text-center w-full px-1">

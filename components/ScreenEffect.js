@@ -341,6 +341,157 @@ function SleepEffect({ onDone }) {
   )
 }
 
+// ─── DISCO PARTY ──────────────────────────────────────────────────────────────
+function DiscoEffect({ onDone }) {
+  const canvasRef = useRef(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext('2d')
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    let time = 0
+    const beams = Array.from({ length: 24 }, (_, i) => ({
+      angle: (i / 24) * Math.PI * 2,
+      hue: (i / 24) * 360,
+      speed: 0.4 + Math.random() * 0.6,
+      width: 2 + Math.random() * 3,
+    }))
+
+    const particles = Array.from({ length: 200 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      size: 2 + Math.random() * 4,
+      hue: Math.random() * 360,
+      vx: (Math.random() - 0.5) * 3,
+      vy: (Math.random() - 0.5) * 3,
+      alpha: Math.random(),
+    }))
+
+    const cx = canvas.width / 2
+    const ballY = canvas.height * 0.18
+    const ballR = Math.min(canvas.width, canvas.height) * 0.09
+
+    function drawDiscoBall() {
+      // Ball glow
+      const glow = ctx.createRadialGradient(cx, ballY, 0, cx, ballY, ballR * 2.5)
+      glow.addColorStop(0, `hsla(${time * 60 % 360},100%,70%,0.25)`)
+      glow.addColorStop(1, 'transparent')
+      ctx.fillStyle = glow
+      ctx.beginPath()
+      ctx.arc(cx, ballY, ballR * 2.5, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Ball body
+      const ballGrad = ctx.createRadialGradient(cx - ballR * 0.3, ballY - ballR * 0.3, ballR * 0.05, cx, ballY, ballR)
+      ballGrad.addColorStop(0, '#ffffff')
+      ballGrad.addColorStop(0.4, '#cccccc')
+      ballGrad.addColorStop(1, '#555555')
+      ctx.beginPath()
+      ctx.arc(cx, ballY, ballR, 0, Math.PI * 2)
+      ctx.fillStyle = ballGrad
+      ctx.fill()
+
+      // Mirror tiles
+      const tileRows = 8, tileCols = 12
+      for (let row = 0; row < tileRows; row++) {
+        for (let col = 0; col < tileCols; col++) {
+          const phi = (row / tileRows) * Math.PI
+          const theta = (col / tileCols) * Math.PI * 2 + time
+          const tx = cx + ballR * 0.95 * Math.sin(phi) * Math.cos(theta)
+          const ty = ballY + ballR * 0.95 * Math.cos(phi)
+          const tr = (ballR / tileRows) * 0.7
+          const brightness = 0.4 + 0.6 * Math.abs(Math.sin(theta + time * 2))
+          const hue = (col * 30 + time * 120) % 360
+          ctx.beginPath()
+          ctx.arc(tx, ty, tr, 0, Math.PI * 2)
+          ctx.fillStyle = `hsla(${hue}, 100%, ${40 + brightness * 50}%, ${0.7 + brightness * 0.3})`
+          ctx.fill()
+        }
+      }
+
+      // String holding ball
+      ctx.strokeStyle = 'rgba(200,200,200,0.6)'
+      ctx.lineWidth = 1.5
+      ctx.beginPath()
+      ctx.moveTo(cx, 0)
+      ctx.lineTo(cx, ballY - ballR)
+      ctx.stroke()
+    }
+
+    function drawBeams() {
+      beams.forEach(b => {
+        b.angle += b.speed * 0.015
+        const endX = cx + Math.cos(b.angle) * canvas.width
+        const endY = ballY + Math.sin(b.angle) * canvas.height
+
+        const grad = ctx.createLinearGradient(cx, ballY, endX, endY)
+        grad.addColorStop(0, `hsla(${b.hue}, 100%, 70%, 0.7)`)
+        grad.addColorStop(1, `hsla(${b.hue}, 100%, 70%, 0)`)
+
+        ctx.beginPath()
+        ctx.moveTo(cx, ballY)
+        ctx.lineTo(endX, endY)
+        ctx.strokeStyle = grad
+        ctx.lineWidth = b.width
+        ctx.stroke()
+        b.hue = (b.hue + 0.5) % 360
+      })
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        p.x += p.vx; p.y += p.vy
+        p.alpha = Math.abs(Math.sin(time * 2 + p.x * 0.01))
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1
+        p.hue = (p.hue + 1) % 360
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = `hsla(${p.hue}, 100%, 70%, ${p.alpha})`
+        ctx.shadowBlur = 8
+        ctx.shadowColor = `hsl(${p.hue}, 100%, 70%)`
+        ctx.fill()
+        ctx.shadowBlur = 0
+      })
+    }
+
+    const animFrame = { id: null }
+    function loop() {
+      ctx.fillStyle = 'rgba(0,0,0,0.25)'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      time += 0.016
+      drawBeams()
+      drawParticles()
+      drawDiscoBall()
+      animFrame.id = requestAnimationFrame(loop)
+    }
+    loop()
+
+    setTimeout(() => { cancelAnimationFrame(animFrame.id); onDone() }, 5000)
+    return () => cancelAnimationFrame(animFrame.id)
+  }, [])
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
+      <div style={{
+        position: 'absolute', bottom: '20%', left: '50%',
+        transform: 'translateX(-50%)',
+        fontSize: '1.4rem', fontWeight: 800,
+        fontFamily: 'Space Grotesk, sans-serif',
+        color: '#fff', letterSpacing: '0.15em',
+        textTransform: 'uppercase',
+        textShadow: '0 0 20px #ff6bd6, 0 0 40px #6c63ff',
+        animation: 'discoText 0.4s ease-in-out infinite alternate',
+        whiteSpace: 'nowrap',
+      }}>🪩 PARTİ MODU 🪩</div>
+      <style>{`@keyframes discoText { from{opacity:.7;transform:translateX(-50%) scale(1)} to{opacity:1;transform:translateX(-50%) scale(1.05)} }`}</style>
+    </div>
+  )
+}
+
 // ─── EXPORT ───────────────────────────────────────────────────────────────────
 // effect can be a string ('matrix', 'fireworks', ...) or an object { type: 'fireworks', vote: '8' }
 export default function ScreenEffect({ effect, onDone }) {
@@ -353,5 +504,6 @@ export default function ScreenEffect({ effect, onDone }) {
   if (effectType === 'shake')     return <ShakeEffect     onDone={onDone} />
   if (effectType === 'money')     return <MoneyRainEffect onDone={onDone} />
   if (effectType === 'sleep')     return <SleepEffect     onDone={onDone} />
+  if (effectType === 'disco')     return <DiscoEffect     onDone={onDone} />
   return null
 }

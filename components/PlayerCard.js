@@ -15,6 +15,7 @@ const GIFTS = [
   { img: '/gifts/simit.jpg',           label: 'Ankara Simidi',      msg: 'sana Ankara simidi gönderiyor!' },
   { img: '/gifts/beypazarikurusu.jpg', label: 'Beypazarı Kurusu',   msg: 'sana Beypazarı kurusu gönderiyor!' },
   { img: '/gifts/beypazarisoda.jpg',   label: 'Beypazarı Sodası',   msg: 'sana Beypazarı sodası ısmarlıyor!' },
+  { img: '/gifts/meyvetabagi.jpg',     label: '🔥 Meyve Tabağı',    msg: 'sana alevli meyve tabağı gönderiyor! 🍑🍇🍓' },
 ]
 
 const EFFECTS = [
@@ -23,6 +24,7 @@ const EFFECTS = [
   { id: 'shake',     emoji: '💥', label: 'Ekranı Salla' },
   { id: 'money',     emoji: '💵', label: 'Para Yağmuru' },
   { id: 'sleep',     emoji: '😴', label: 'Uyku Modu' },
+  { id: 'disco',     emoji: '🪩', label: 'Disko Topu' },
 ]
 
 

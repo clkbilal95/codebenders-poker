@@ -49,106 +49,8 @@ function MatrixEffect({ onDone }) {
   )
 }
 
-// ─── NICE MEME (Green Screen Chroma Key) ─────────────────────────────────────
-function NiceMemeEffect({ onDone, consensusVote }) {
-  const videoRef = useRef(null)
-  const canvasRef = useRef(null)
-  const animRef = useRef(null)
-
-  useEffect(() => {
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const ctx = canvas.getContext('2d', { willReadFrequently: true })
-
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-
-    function chromaKey() {
-      if (video.paused || video.ended) return
-      const vw = video.videoWidth
-      const vh = video.videoHeight
-      if (!vw || !vh) { animRef.current = requestAnimationFrame(chromaKey); return }
-
-      // Draw video centered/scaled to canvas
-      const scale = Math.min(canvas.width / vw, canvas.height / vh)
-      const dw = vw * scale
-      const dh = vh * scale
-      const dx = (canvas.width - dw) / 2
-      const dy = (canvas.height - dh) / 2
-
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      ctx.drawImage(video, dx, dy, dw, dh)
-
-      // Chroma key: remove green pixels
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const d = imageData.data
-      for (let i = 0; i < d.length; i += 4) {
-        const r = d[i], g = d[i+1], b = d[i+2]
-        // Green screen detection: g dominant, not too bright white
-        if (g > 100 && g > r * 1.4 && g > b * 1.4) {
-          d[i+3] = 0 // transparent
-        }
-      }
-      ctx.putImageData(imageData, 0, 0)
-      animRef.current = requestAnimationFrame(chromaKey)
-    }
-
-    video.addEventListener('canplay', () => {
-      video.play()
-      chromaKey()
-    })
-
-    video.addEventListener('ended', () => {
-      cancelAnimationFrame(animRef.current)
-      onDone()
-    })
-
-    return () => cancelAnimationFrame(animRef.current)
-  }, [])
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none' }}>
-      {/* Hidden video element for frame source */}
-      <video
-        ref={videoRef}
-        src="/nice-meme.mp4"
-        style={{ display: 'none' }}
-        playsInline
-        crossOrigin="anonymous"
-      />
-      {/* Canvas renders chroma-keyed frames — site shows through transparent pixels */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} />
-
-      {/* Consensus overlay */}
-      {consensusVote && (
-        <div style={{
-          position: 'absolute', top: '8%', left: '50%',
-          transform: 'translateX(-50%)',
-          textAlign: 'center',
-          animation: 'consensusPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both',
-        }}>
-          <div style={{
-            background: 'rgba(13,15,26,0.85)',
-            border: '2px solid #6C63FF',
-            borderRadius: 20,
-            padding: '12px 28px',
-            boxShadow: '0 0 40px rgba(108,99,255,0.5)',
-          }}>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: '0.85rem', color: '#A0A8CC', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Oy Birliği 🎉</div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 800, fontSize: '2.8rem', color: '#fff', lineHeight: 1.1, textShadow: '0 0 24px rgba(108,99,255,0.9)' }}>{consensusVote}</div>
-            <div style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: '0.85rem', color: '#8B85FF', marginTop: 4 }}>Herkes aynı puanı verdi!</div>
-          </div>
-        </div>
-      )}
-      <style>{`
-        @keyframes consensusPop {
-          from { opacity:0; transform: translateX(-50%) scale(0.6); }
-          to   { opacity:1; transform: translateX(-50%) scale(1); }
-        }
-      `}</style>
-    </div>
-  )
-}
+// ─── FIREWORKS ────────────────────────────────────────────────────────────────
+function FireworksEffect({ onDone, consensusVote }) {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -598,8 +500,7 @@ export default function ScreenEffect({ effect, onDone }) {
   const consensusVote = typeof effect === 'object' ? effect.vote : null
 
   if (effectType === 'matrix')    return <MatrixEffect    onDone={onDone} />
-  if (effectType === 'fireworks') return <FireworksEffect onDone={onDone} />
-  if (effectType === 'consensus') return <NiceMemeEffect  onDone={onDone} consensusVote={consensusVote} />
+  if (effectType === 'fireworks') return <FireworksEffect onDone={onDone} consensusVote={consensusVote} />
   if (effectType === 'shake')     return <ShakeEffect     onDone={onDone} />
   if (effectType === 'money')     return <MoneyRainEffect onDone={onDone} />
   if (effectType === 'sleep')     return <SleepEffect     onDone={onDone} />

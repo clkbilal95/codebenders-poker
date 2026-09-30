@@ -194,7 +194,7 @@ export default function RoomPage() {
         else if (payload.fromId !== playerId)
           addToast(`${payload.fromName} → ${payload.toName}: ${payload.giftLabel}`, '🎁', 'gift')
       })
-      .on('broadcast', { event: 'consensus_fireworks' }, ({ payload }) => setActiveEffect({ type: 'fireworks', vote: payload?.vote || null }))
+      .on('broadcast', { event: 'consensus_fireworks' }, ({ payload }) => setActiveEffect({ type: 'consensus', vote: payload?.vote || null }))
       .on('broadcast', { event: 'timer_start' }, ({ payload }) => {
         setTimer(payload.seconds)
         setTimerActive(true)
@@ -227,7 +227,7 @@ export default function RoomPage() {
       if (allSame) {
         const consensusVote = votes[0]
         supabase.channel(`gifts-${roomId}`).send({ type: 'broadcast', event: 'consensus_fireworks', payload: { vote: consensusVote } })
-        setActiveEffect({ type: 'fireworks', vote: consensusVote })
+        setActiveEffect({ type: 'consensus', vote: consensusVote })
       }
     }, 400)
   }
